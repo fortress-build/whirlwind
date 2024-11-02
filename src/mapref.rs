@@ -22,7 +22,7 @@
 //! });
 
 use hashbrown::HashTable;
-use tokio::sync::{RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
 /// A reference to a key-value pair in a [`crate::ShardMap`]. Holds a shared (read-only) lock on the shard
 /// associated with the key.
