@@ -21,8 +21,7 @@
 //!     assert_eq!(mr.value(), &"baz");
 //! });
 
-use hashbrown::HashTable;
-use std::sync::{RwLockReadGuard, RwLockWriteGuard};
+use crate::shard::{ShardReader, ShardWriter};
 
 /// A reference to a key-value pair in a [`crate::ShardMap`]. Holds a shared (read-only) lock on the shard
 /// associated with the key.
@@ -30,7 +29,7 @@ pub struct MapRef<'a, K, V> {
     key: &'a K,
     value: &'a V,
     #[allow(unused)]
-    reader: RwLockReadGuard<'a, HashTable<(K, V)>>,
+    reader: ShardReader<'a, K, V>,
 }
 
 impl<K, V> std::ops::Deref for MapRef<'_, K, V>
@@ -48,11 +47,7 @@ impl<'a, K, V> MapRef<'a, K, V>
 where
     K: Eq + std::hash::Hash,
 {
-    pub(crate) fn new(
-        reader: RwLockReadGuard<'a, HashTable<(K, V)>>,
-        key: &'a K,
-        value: &'a V,
-    ) -> Self {
+    pub(crate) fn new(reader: ShardReader<'a, K, V>, key: &'a K, value: &'a V) -> Self {
         Self { reader, key, value }
     }
 
@@ -75,7 +70,7 @@ pub struct MapRefMut<'a, K, V> {
     key: &'a K,
     value: &'a mut V,
     #[allow(unused)]
-    writer: RwLockWriteGuard<'a, HashTable<(K, V)>>,
+    writer: ShardWriter<'a, K, V>,
 }
 
 impl<'a, K, V> std::ops::Deref for MapRefMut<'a, K, V>
@@ -102,11 +97,7 @@ impl<'a, K, V> MapRefMut<'a, K, V>
 where
     K: Eq + std::hash::Hash,
 {
-    pub(crate) fn new(
-        writer: RwLockWriteGuard<'a, HashTable<(K, V)>>,
-        key: &'a K,
-        value: &'a mut V,
-    ) -> Self {
+    pub(crate) fn new(writer: ShardWriter<'a, K, V>, key: &'a K, value: &'a mut V) -> Self {
         Self { writer, key, value }
     }
 

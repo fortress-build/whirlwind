@@ -1,27 +1,28 @@
-//! A concurrent hashmap using a sharding strategy.
-//!
-//! # Examples
-//! ```
-//! use tokio::runtime::Runtime;
-//! use std::sync::Arc;
-//! use whirlwind::ShardMap;
-//!
-//! let rt = Runtime::new().unwrap();
-//! let map = Arc::new(ShardMap::new());
-//! rt.block_on(async {
-//!    map.insert("foo", "bar").await;
-//!    assert_eq!(map.len(), 1);
-//!    assert_eq!(map.contains_key(&"foo").await, true);
-//!    assert_eq!(map.contains_key(&"bar").await, false);
-//!
-//!    assert_eq!(map.get(&"foo").await.unwrap().value(), &"bar");
-//!    assert_eq!(map.remove(&"foo").await, Some("bar"));
-//! });
-//!
+/// A concurrent hashmap using a sharding strategy.
+///
+/// # Examples
+/// ```
+/// use tokio::runtime::Runtime;
+/// use std::sync::Arc;
+/// use whirlwind::ShardMap;
+///
+/// let rt = Runtime::new().unwrap();
+/// let map = Arc::new(ShardMap::new());
+/// rt.block_on(async {
+///    map.insert("foo", "bar").await;
+///    assert_eq!(map.len(), 1);
+///    assert_eq!(map.contains_key(&"foo").await, true);
+///    assert_eq!(map.contains_key(&"bar").await, false);
+///
+///    assert_eq!(map.get(&"foo").await.unwrap().value(), &"bar");
+///    assert_eq!(map.remove(&"foo").await, Some("bar"));
+/// });
 use std::{
     hash::{BuildHasher, RandomState},
     sync::{atomic::AtomicUsize, Arc, OnceLock},
 };
+
+use crossbeam_utils::CachePadded;
 
 use crate::{
     mapref::{MapRef, MapRefMut},
@@ -29,13 +30,13 @@ use crate::{
 };
 
 struct Inner<K, V, S = RandomState> {
-    shards: Vec<Shard<K, V>>,
+    shards: Box<[CachePadded<Shard<K, V>>]>,
     length: AtomicUsize,
     hasher: S,
 }
 
 impl<K, V, S> std::ops::Deref for Inner<K, V, S> {
-    type Target = Vec<Shard<K, V>>;
+    type Target = Box<[CachePadded<Shard<K, V>>]>;
 
     fn deref(&self) -> &Self::Target {
         &self.shards
@@ -49,11 +50,30 @@ impl<K, V, S> std::ops::DerefMut for Inner<K, V, S> {
 }
 
 /// A concurrent hashmap using a sharding strategy.
+///
+/// # Examples
+/// ```
+/// use tokio::runtime::Runtime;
+/// use std::sync::Arc;
+/// use whirlwind::ShardMap;
+///
+/// let rt = Runtime::new().unwrap();
+/// let map = Arc::new(ShardMap::new());
+/// rt.block_on(async {
+///    map.insert("foo", "bar").await;
+///    assert_eq!(map.len(), 1);
+///    assert_eq!(map.contains_key(&"foo").await, true);
+///    assert_eq!(map.contains_key(&"bar").await, false);
+///
+///    assert_eq!(map.get(&"foo").await.unwrap().value(), &"bar");
+///    assert_eq!(map.remove(&"foo").await, Some("bar"));
+/// });
+/// ```
 pub struct ShardMap<K, V, S = std::hash::RandomState> {
     inner: Arc<Inner<K, V, S>>,
 }
 
-impl<K, V, H: BuildHasher> Clone for ShardMap<K, V, H> {
+impl<K, V, H> Clone for ShardMap<K, V, H> {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
@@ -61,12 +81,15 @@ impl<K, V, H: BuildHasher> Clone for ShardMap<K, V, H> {
     }
 }
 
+#[inline(always)]
+fn calculate_shard_count() -> usize {
+    (std::thread::available_parallelism().map_or(1, usize::from) * 4).next_power_of_two()
+}
+
+#[inline(always)]
 fn shard_count() -> usize {
-    // Same as DashMap
     static SHARD_COUNT: OnceLock<usize> = OnceLock::new();
-    *SHARD_COUNT.get_or_init(|| {
-        (std::thread::available_parallelism().map_or(1, usize::from) * 4).next_power_of_two()
-    })
+    *SHARD_COUNT.get_or_init(calculate_shard_count)
 }
 
 impl<K, V> ShardMap<K, V, RandomState>
@@ -75,11 +98,19 @@ where
     V: 'static,
 {
     pub fn new() -> Self {
-        Self::new_with_shards(shard_count())
+        Self::with_shards(shard_count())
     }
 
-    pub fn new_with_shards(shards: usize) -> Self {
-        Self::new_with_shards_and_hasher(shards, RandomState::new())
+    pub fn with_shards(shards: usize) -> Self {
+        Self::with_shards_and_hasher(shards, RandomState::new())
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self::with_capacity_and_hasher(capacity, RandomState::new())
+    }
+
+    pub fn with_shards_and_capacity(shards: usize, cap: usize) -> Self {
+        Self::with_shards_and_capacity_and_hasher(shards, cap, RandomState::new())
     }
 }
 
@@ -88,14 +119,18 @@ where
     K: Eq + std::hash::Hash + 'static,
     V: 'static,
 {
-    pub fn new_with_hasher(hasher: S) -> Self {
-        Self::new_with_shards_and_hasher(shard_count(), hasher)
+    pub fn with_hasher(hasher: S) -> Self {
+        Self::with_shards_and_hasher(shard_count(), hasher)
     }
 
-    pub fn new_with_shards_and_hasher(shards: usize, hasher: S) -> Self {
+    pub fn with_capacity_and_hasher(cap: usize, hasher: S) -> Self {
+        Self::with_shards_and_capacity_and_hasher(shard_count(), cap, hasher)
+    }
+
+    pub fn with_shards_and_hasher(shards: usize, hasher: S) -> Self {
         let shards = std::iter::repeat(())
-            .take(shards)
-            .map(|_| Shard::new())
+            .take(shards.next_power_of_two())
+            .map(|_| CachePadded::new(Shard::new()))
             .collect();
 
         Self {
@@ -107,15 +142,39 @@ where
         }
     }
 
-    fn shard(&self, key: &K) -> (&Shard<K, V>, u64) {
+    pub fn with_shards_and_capacity_and_hasher(shards: usize, cap: usize, hasher: S) -> Self {
+        let capacity = (cap / shards + 1).next_power_of_two().min(4);
+        let shards = std::iter::repeat(())
+            .take(shards.next_power_of_two())
+            .map(|_| CachePadded::new(Shard::with_capacity(capacity)))
+            .collect();
+
+        Self {
+            inner: Arc::new(Inner {
+                shards,
+                length: AtomicUsize::new(0),
+                hasher,
+            }),
+        }
+    }
+
+    #[inline(always)]
+    fn shard(&self, key: &K) -> (&CachePadded<Shard<K, V>>, u64) {
         let hash = self.inner.hasher.hash_one(key);
-        let shard_idx = (hash % Vec::len(&self.inner) as u64) as usize;
-        (&self.inner[shard_idx], hash)
+
+        let k = const { (std::mem::size_of::<usize>() * 8) - 1 }
+            - self.inner.len().leading_zeros() as usize;
+        // Optimized version of hash % self.inner.len().
+        // Works because self.inner.len() is always a power of 2.
+        let shard_idx = hash as usize & ((1 << k) - 1);
+
+        (unsafe { self.inner.get_unchecked(shard_idx) }, hash)
     }
 
     pub async fn insert(&self, key: K, value: V) -> Option<V> {
         let (shard, hash) = self.shard(&key);
         let mut writer = shard.write().await;
+
         let old = writer.entry(
             hash,
             |(k, _)| k == &key,
@@ -146,7 +205,7 @@ where
         reader
             .find(hash, |(k, _)| k == key)
             .map(|(k, v)| (k as *const K, v as *const V))
-            .map(|(k, v)| unsafe {
+            .map(move |(k, v)| unsafe {
                 // SAFETY: The key and value are guaranteed to be valid for the lifetime of the reader.
                 MapRef::new(reader, &*k, &*v)
             })
@@ -155,10 +214,11 @@ where
     pub async fn get_mut<'a>(&'a self, key: &'a K) -> Option<MapRefMut<'a, K, V>> {
         let (shard, hash) = self.shard(key);
         let mut writer = shard.write().await;
+
         writer
             .find_mut(hash, |(k, _)| k == key)
             .map(|(k, v)| (k as *const K, v as *mut V))
-            .map(|(k, v)| unsafe {
+            .map(move |(k, v)| unsafe {
                 // SAFETY: The key and value are guaranteed to be valid for the lifetime of the writer.
                 MapRefMut::new(writer, &*k, &mut *v)
             })
@@ -168,13 +228,14 @@ where
         let (shard, hash) = self.shard(key);
 
         let reader = shard.read().await;
+
         reader.find(hash, |(k, _)| k == key).is_some()
     }
 
     pub async fn remove(&self, key: &K) -> Option<V> {
         let (shard, hash) = self.shard(key);
-        let mut shard = shard.write().await;
-        match shard.find_entry(hash, |(k, _)| k == key) {
+
+        match shard.write().await.find_entry(hash, |(k, _)| k == key) {
             Ok(v) => {
                 let ((_, v), _) = v.remove();
 

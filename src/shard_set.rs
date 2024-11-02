@@ -28,6 +28,28 @@ use std::hash::{BuildHasher, Hash, RandomState};
 use crate::shard_map::ShardMap;
 
 /// A concurrent set based on a [`ShardMap`] with values of `()`.
+///
+/// # Example
+///
+/// ```
+/// use std::sync::Arc;
+/// use whirlwind::ShardSet;
+///
+/// let rt = tokio::runtime::Runtime::new().unwrap();
+/// let set = Arc::new(ShardSet::new());
+///
+/// rt.block_on(async {
+///     for i in 0..10 {
+///         let k = i;
+///         if i % 2 == 0 {
+///             set.insert(k).await;
+///         } else {
+///             set.remove(&(k-1)).await;
+///         }
+///     }
+/// });
+/// ```
+///
 pub struct ShardSet<T, S = RandomState> {
     inner: ShardMap<T, (), S>,
 }
@@ -41,7 +63,7 @@ impl<T: Eq + Hash + 'static> ShardSet<T, RandomState> {
 
     pub fn new_with_shards(shards: usize) -> Self {
         Self {
-            inner: ShardMap::new_with_shards(shards),
+            inner: ShardMap::with_shards(shards),
         }
     }
 }
@@ -53,13 +75,13 @@ where
 {
     pub fn new_with_hasher(hasher: S) -> Self {
         Self {
-            inner: ShardMap::new_with_hasher(hasher),
+            inner: ShardMap::with_hasher(hasher),
         }
     }
 
     pub fn new_with_shards_and_hasher(shards: usize, hasher: S) -> Self {
         Self {
-            inner: ShardMap::new_with_shards_and_hasher(shards, hasher),
+            inner: ShardMap::with_shards_and_hasher(shards, hasher),
         }
     }
 

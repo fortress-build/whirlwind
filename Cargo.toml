@@ -12,7 +12,7 @@ categories = ["asynchronous", "concurrency", "data-structures"]
 
 
 [dependencies]
-hashbrown = "0.15.0"
+hashbrown = { version = "0.15" }
 
 [dev-dependencies]
 tokio = { version = "1.41.0", features = ["full"] }

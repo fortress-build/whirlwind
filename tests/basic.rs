@@ -31,7 +31,7 @@ async fn test_shardmap_clone() {
 
 #[tokio::test]
 async fn test_shardmap_shards() {
-    let map = ShardMap::new_with_shards(4);
+    let map = ShardMap::with_shards(4);
     map.insert("foo", "bar").await;
     assert_eq!(map.len(), 1);
     assert_eq!(map.contains_key(&"foo").await, true);
