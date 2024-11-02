@@ -26,14 +26,14 @@ use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
 /// A reference to a key-value pair in a [`crate::ShardMap`]. Holds a shared (read-only) lock on the shard
 /// associated with the key.
-pub struct MapRef<'a, 'b: 'a, K, V> {
-    key: &'b K,
-    value: &'b V,
+pub struct MapRef<'a, K, V> {
+    key: &'a K,
+    value: &'a V,
     #[allow(unused)]
     reader: RwLockReadGuard<'a, HashTable<(K, V)>>,
 }
 
-impl<K, V> std::ops::Deref for MapRef<'_, '_, K, V>
+impl<K, V> std::ops::Deref for MapRef<'_, K, V>
 where
     K: Eq + std::hash::Hash,
 {
@@ -44,14 +44,14 @@ where
     }
 }
 
-impl<'a, 'b: 'a, K, V> MapRef<'a, 'b, K, V>
+impl<'a, K, V> MapRef<'a, K, V>
 where
     K: Eq + std::hash::Hash,
 {
     pub(crate) fn new(
         reader: RwLockReadGuard<'a, HashTable<(K, V)>>,
-        key: &'b K,
-        value: &'b V,
+        key: &'a K,
+        value: &'a V,
     ) -> Self {
         Self { reader, key, value }
     }
@@ -71,14 +71,14 @@ where
 
 /// A mutable reference to a key-value pair in a [`crate::ShardMap`]. Holds an exclusive lock on
 /// the shard associated with the key.
-pub struct MapRefMut<'a, 'b: 'a, K, V> {
-    key: &'b K,
-    value: &'b mut V,
+pub struct MapRefMut<'a, K, V> {
+    key: &'a K,
+    value: &'a mut V,
     #[allow(unused)]
     writer: RwLockWriteGuard<'a, HashTable<(K, V)>>,
 }
 
-impl<'a, 'b: 'a, K, V> std::ops::Deref for MapRefMut<'a, 'b, K, V>
+impl<'a, K, V> std::ops::Deref for MapRefMut<'a, K, V>
 where
     K: Eq + std::hash::Hash,
 {
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<'a, 'b, K, V> std::ops::DerefMut for MapRefMut<'a, 'b, K, V>
+impl<'a, K, V> std::ops::DerefMut for MapRefMut<'a, K, V>
 where
     K: Eq + std::hash::Hash,
 {
@@ -98,14 +98,14 @@ where
     }
 }
 
-impl<'a, 'b: 'a, K, V> MapRefMut<'a, 'b, K, V>
+impl<'a, K, V> MapRefMut<'a, K, V>
 where
     K: Eq + std::hash::Hash,
 {
     pub(crate) fn new(
         writer: RwLockWriteGuard<'a, HashTable<(K, V)>>,
-        key: &'b K,
-        value: &'b mut V,
+        key: &'a K,
+        value: &'a mut V,
     ) -> Self {
         Self { writer, key, value }
     }

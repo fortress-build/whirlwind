@@ -138,7 +138,7 @@ where
         }
     }
 
-    pub async fn get<'a, 'b: 'a>(&'a self, key: &'b K) -> Option<MapRef<'a, 'b, K, V>> {
+    pub async fn get<'a>(&'a self, key: &'a K) -> Option<MapRef<'a, K, V>> {
         let (shard, hash) = self.shard(key);
 
         let reader = shard.read().await;
@@ -152,7 +152,7 @@ where
             })
     }
 
-    pub async fn get_mut<'a, 'b: 'a>(&'a self, key: &'b K) -> Option<MapRefMut<'a, 'b, K, V>> {
+    pub async fn get_mut<'a>(&'a self, key: &'a K) -> Option<MapRefMut<'a, K, V>> {
         let (shard, hash) = self.shard(key);
         let mut writer = shard.write().await;
         writer
