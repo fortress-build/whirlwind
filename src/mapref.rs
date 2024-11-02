@@ -26,7 +26,7 @@ use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
 /// A reference to a key-value pair in a [`crate::ShardMap`]. Holds a shared (read-only) lock on the shard
 /// associated with the key.
-pub struct MapRef<'a, 'b, K, V> {
+pub struct MapRef<'a, 'b: 'a, K, V> {
     key: &'b K,
     value: &'b V,
     #[allow(unused)]
@@ -44,7 +44,7 @@ where
     }
 }
 
-impl<'a, 'b, K, V> MapRef<'a, 'b, K, V>
+impl<'a, 'b: 'a, K, V> MapRef<'a, 'b, K, V>
 where
     K: Eq + std::hash::Hash,
 {
@@ -71,14 +71,14 @@ where
 
 /// A mutable reference to a key-value pair in a [`crate::ShardMap`]. Holds an exclusive lock on
 /// the shard associated with the key.
-pub struct MapRefMut<'a, 'b, K, V> {
+pub struct MapRefMut<'a, 'b: 'a, K, V> {
     key: &'b K,
     value: &'b mut V,
     #[allow(unused)]
     writer: RwLockWriteGuard<'a, HashTable<(K, V)>>,
 }
 
-impl<K, V> std::ops::Deref for MapRefMut<'_, '_, K, V>
+impl<'a, 'b: 'a, K, V> std::ops::Deref for MapRefMut<'a, 'b, K, V>
 where
     K: Eq + std::hash::Hash,
 {
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<K, V> std::ops::DerefMut for MapRefMut<'_, '_, K, V>
+impl<'a, 'b, K, V> std::ops::DerefMut for MapRefMut<'a, 'b, K, V>
 where
     K: Eq + std::hash::Hash,
 {
@@ -98,7 +98,7 @@ where
     }
 }
 
-impl<'a, 'b, K, V> MapRefMut<'a, 'b, K, V>
+impl<'a, 'b: 'a, K, V> MapRefMut<'a, 'b, K, V>
 where
     K: Eq + std::hash::Hash,
 {
