@@ -12,6 +12,7 @@ categories = ["asynchronous", "concurrency", "data-structures"]
 
 
 [dependencies]
+crossbeam-utils = "0.8.20"
 hashbrown = { version = "0.15" }
 
 [dev-dependencies]
