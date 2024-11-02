@@ -47,8 +47,8 @@ where
     V: 'static,
 {
     pub fn new() -> Self {
-        let n_shards = num_cpus::get().max(4);
-        let shards = std::iter::repeat_n((), n_shards)
+        let shards = std::iter::repeat(())
+            .take(num_cpus::get().max(4))
             .map(|_| Shard::new())
             .collect();
 
@@ -62,9 +62,11 @@ where
     }
 
     pub fn new_with_shards(shards: usize) -> Self {
-        let shards = std::iter::repeat_n((), shards)
+        let shards = std::iter::repeat(())
+            .take(shards)
             .map(|_| Shard::new())
             .collect();
+
         Self {
             inner: Arc::new(Inner {
                 shards,
