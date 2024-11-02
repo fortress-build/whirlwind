@@ -1,3 +1,23 @@
+//! A concurrent hashmap using a sharding strategy.
+//!
+//! # Examples
+//! ```
+//! use tokio::runtime::Runtime;
+//! use std::sync::Arc;
+//! use whirlwind::ShardMap;
+//!
+//! let rt = Runtime::new().unwrap();
+//! let map = Arc::new(ShardMap::new());
+//! rt.block_on(async {
+//!    map.insert("foo", "bar").await;
+//!    assert_eq!(map.len(), 1);
+//!    assert_eq!(map.contains_key(&"foo").await, true);
+//!    assert_eq!(map.contains_key(&"bar").await, false);
+//!
+//!    assert_eq!(map.get(&"foo").await.unwrap().value(), &"bar");
+//!    assert_eq!(map.remove(&"foo").await, Some("bar"));
+//! });
+//!
 use std::{
     hash::Hasher,
     sync::{atomic::AtomicUsize, Arc, OnceLock},
@@ -111,24 +131,30 @@ where
         }
     }
 
-    pub async fn get<'a, 'b: 'a>(&'a self, key: &'b K) -> Option<MapRef<'_, '_, K, V>> {
+    pub async fn get<'a, 'b: 'a>(&'a self, key: &'b K) -> Option<MapRef<'a, 'b, K, V>> {
         let (shard, hash) = self.shard(key);
 
         let reader = shard.read().await;
 
         reader
             .find(hash, |(k, _)| k == key)
-            .map(|_| ())
-            .map(|_| MapRef::new(reader, key, hash))
+            .map(|(k, v)| (k as *const K, v as *const V))
+            .map(|(k, v)| unsafe {
+                // SAFETY: The key and value are guaranteed to be valid for the lifetime of the reader.
+                MapRef::new(reader, &*k, &*v)
+            })
     }
 
-    pub async fn get_mut<'a, 'b: 'a>(&'a self, key: &'b K) -> Option<MapRefMut<'_, '_, K, V>> {
+    pub async fn get_mut<'a, 'b: 'a>(&'a self, key: &'b K) -> Option<MapRefMut<'a, 'b, K, V>> {
         let (shard, hash) = self.shard(key);
-        let writer = shard.write().await;
+        let mut writer = shard.write().await;
         writer
-            .find(hash, |(k, _)| k == key)
-            .map(|_| ())
-            .map(|_| MapRefMut::new(writer, key, hash))
+            .find_mut(hash, |(k, _)| k == key)
+            .map(|(k, v)| (k as *const K, v as *mut V))
+            .map(|(k, v)| unsafe {
+                // SAFETY: The key and value are guaranteed to be valid for the lifetime of the writer.
+                MapRefMut::new(writer, &*k, &mut *v)
+            })
     }
 
     pub async fn contains_key(&self, key: &K) -> bool {

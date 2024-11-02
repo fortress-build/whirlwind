@@ -1,3 +1,28 @@
+//! # ShardSet
+//!
+//! A concurrent set based on a [`ShardMap`] with values of `()`.
+//!
+//! # Example
+//!
+//! ```
+//! use std::sync::Arc;
+//! use whirlwind::ShardSet;
+//!
+//! let rt = tokio::runtime::Runtime::new().unwrap();
+//! let set = Arc::new(ShardSet::new());
+//!
+//! rt.block_on(async {
+//!     for i in 0..10 {
+//!         let k = i;
+//!         if i % 2 == 0 {
+//!             set.insert(k).await;
+//!         } else {
+//!             set.remove(&(k-1)).await;
+//!         }
+//!     }
+//! });
+//! ```
+//!
 use crate::shard_map::ShardMap;
 
 /// A concurrent set based on a [`ShardMap`] with values of `()`.

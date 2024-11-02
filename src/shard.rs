@@ -1,6 +1,7 @@
 use hashbrown::HashTable;
 use tokio::sync::RwLock;
 
+/// A shard in a [`crate::ShardMap`]. Each shard contains a [`hashbrown::HashTable`] of key-value pairs.
 pub(crate) struct Shard<K, V> {
     data: RwLock<HashTable<(K, V)>>,
 }

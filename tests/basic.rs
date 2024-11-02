@@ -7,7 +7,7 @@ async fn test_shardmap() {
     assert_eq!(map.len(), 1);
     assert_eq!(map.contains_key(&"foo").await, true);
     assert_eq!(map.contains_key(&"bar").await, false);
-    assert_eq!(map.get(&"foo").await.unwrap().value(), Some(&"bar"));
+    assert_eq!(map.get(&"foo").await.unwrap().value(), &"bar");
     assert!(map.get(&"bar").await.is_none());
     assert_eq!(map.remove(&"foo").await, Some("bar"));
     assert_eq!(map.len(), 0);
@@ -22,7 +22,7 @@ async fn test_shardmap_clone() {
     assert_eq!(map2.len(), 1);
     assert_eq!(map2.contains_key(&"foo").await, true);
     assert_eq!(map2.contains_key(&"bar").await, false);
-    assert_eq!(map2.get(&"foo").await.unwrap().value(), Some(&"bar"));
+    assert_eq!(map2.get(&"foo").await.unwrap().value(), &"bar");
     assert!(map2.get(&"bar").await.is_none());
     assert_eq!(map2.remove(&"foo").await, Some("bar"));
     assert_eq!(map2.len(), 0);
@@ -36,7 +36,7 @@ async fn test_shardmap_shards() {
     assert_eq!(map.len(), 1);
     assert_eq!(map.contains_key(&"foo").await, true);
     assert_eq!(map.contains_key(&"bar").await, false);
-    assert_eq!(map.get(&"foo").await.unwrap().value(), Some(&"bar"));
+    assert_eq!(map.get(&"foo").await.unwrap().value(), &"bar");
     assert!(map.get(&"bar").await.is_none());
     assert_eq!(map.remove(&"foo").await, Some("bar"));
     assert_eq!(map.len(), 0);
