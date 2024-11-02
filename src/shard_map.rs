@@ -1,6 +1,6 @@
 use std::{
     hash::Hasher,
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{atomic::AtomicUsize, Arc, OnceLock},
 };
 
 use crate::{
@@ -41,24 +41,21 @@ impl<K, V> Clone for ShardMap<K, V> {
     }
 }
 
+fn shard_count() -> usize {
+    // Same as DashMap
+    static SHARD_COUNT: OnceLock<usize> = OnceLock::new();
+    *SHARD_COUNT.get_or_init(|| {
+        (std::thread::available_parallelism().map_or(1, usize::from) * 4).next_power_of_two()
+    })
+}
+
 impl<K, V> ShardMap<K, V>
 where
     K: Eq + std::hash::Hash + 'static,
     V: 'static,
 {
     pub fn new() -> Self {
-        let shards = std::iter::repeat(())
-            .take(num_cpus::get().max(4))
-            .map(|_| Shard::new())
-            .collect();
-
-        Self {
-            inner: Arc::new(Inner {
-                shards,
-                length: AtomicUsize::new(0),
-                key: std::marker::PhantomData,
-            }),
-        }
+        Self::new_with_shards(shard_count())
     }
 
     pub fn new_with_shards(shards: usize) -> Self {
