@@ -157,21 +157,6 @@ where
     }
 
     pub fn len(&self) -> usize {
-        // let mut sum = 0;
-        //
-        // let mut set = tokio::task::JoinSet::new();
-        //
-        // let count = self.inner.len();
-        // for shard in 0..count {
-        //     let this = self.clone();
-        //     set.spawn_local(async move { this.inner[shard].read().await.len() });
-        // }
-        //
-        // while let Some(count) = set.join_next().await.transpose().expect("join error") {
-        //     sum += count;
-        // }
-        //
-        // sum
         self.inner.length.load(std::sync::atomic::Ordering::Relaxed)
     }
 
