@@ -23,20 +23,43 @@
 //! });
 //! ```
 //!
+use std::hash::{BuildHasher, Hash, RandomState};
+
 use crate::shard_map::ShardMap;
 
 /// A concurrent set based on a [`ShardMap`] with values of `()`.
-pub struct ShardSet<T> {
-    inner: ShardMap<T, ()>,
+pub struct ShardSet<T, S = RandomState> {
+    inner: ShardMap<T, (), S>,
 }
 
-impl<T> ShardSet<T>
-where
-    T: Eq + std::hash::Hash + 'static,
-{
+impl<T: Eq + Hash + 'static> ShardSet<T, RandomState> {
     pub fn new() -> Self {
         Self {
             inner: ShardMap::new(),
+        }
+    }
+
+    pub fn new_with_shards(shards: usize) -> Self {
+        Self {
+            inner: ShardMap::new_with_shards(shards),
+        }
+    }
+}
+
+impl<T, S> ShardSet<T, S>
+where
+    T: Eq + std::hash::Hash + 'static,
+    S: BuildHasher,
+{
+    pub fn new_with_hasher(hasher: S) -> Self {
+        Self {
+            inner: ShardMap::new_with_hasher(hasher),
+        }
+    }
+
+    pub fn new_with_shards_and_hasher(shards: usize, hasher: S) -> Self {
+        Self {
+            inner: ShardMap::new_with_shards_and_hasher(shards, hasher),
         }
     }
 

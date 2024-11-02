@@ -19,7 +19,7 @@
 //! });
 //!
 use std::{
-    hash::Hasher,
+    hash::{BuildHasher, RandomState},
     sync::{atomic::AtomicUsize, Arc, OnceLock},
 };
 
@@ -28,13 +28,13 @@ use crate::{
     shard::Shard,
 };
 
-struct Inner<K, V> {
+struct Inner<K, V, S = RandomState> {
     shards: Vec<Shard<K, V>>,
     length: AtomicUsize,
-    key: std::marker::PhantomData<K>,
+    hasher: S,
 }
 
-impl<K, V> std::ops::Deref for Inner<K, V> {
+impl<K, V, S> std::ops::Deref for Inner<K, V, S> {
     type Target = Vec<Shard<K, V>>;
 
     fn deref(&self) -> &Self::Target {
@@ -42,18 +42,18 @@ impl<K, V> std::ops::Deref for Inner<K, V> {
     }
 }
 
-impl<K, V> std::ops::DerefMut for Inner<K, V> {
+impl<K, V, S> std::ops::DerefMut for Inner<K, V, S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.shards
     }
 }
 
 /// A concurrent hashmap using a sharding strategy.
-pub struct ShardMap<K, V> {
-    inner: Arc<Inner<K, V>>,
+pub struct ShardMap<K, V, S = std::hash::RandomState> {
+    inner: Arc<Inner<K, V, S>>,
 }
 
-impl<K, V> Clone for ShardMap<K, V> {
+impl<K, V, H: BuildHasher> Clone for ShardMap<K, V, H> {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
@@ -69,7 +69,7 @@ fn shard_count() -> usize {
     })
 }
 
-impl<K, V> ShardMap<K, V>
+impl<K, V> ShardMap<K, V, RandomState>
 where
     K: Eq + std::hash::Hash + 'static,
     V: 'static,
@@ -79,6 +79,20 @@ where
     }
 
     pub fn new_with_shards(shards: usize) -> Self {
+        Self::new_with_shards_and_hasher(shards, RandomState::new())
+    }
+}
+
+impl<K, V, S: BuildHasher> ShardMap<K, V, S>
+where
+    K: Eq + std::hash::Hash + 'static,
+    V: 'static,
+{
+    pub fn new_with_hasher(hasher: S) -> Self {
+        Self::new_with_shards_and_hasher(shard_count(), hasher)
+    }
+
+    pub fn new_with_shards_and_hasher(shards: usize, hasher: S) -> Self {
         let shards = std::iter::repeat(())
             .take(shards)
             .map(|_| Shard::new())
@@ -88,16 +102,13 @@ where
             inner: Arc::new(Inner {
                 shards,
                 length: AtomicUsize::new(0),
-                key: std::marker::PhantomData,
+                hasher,
             }),
         }
     }
 
     fn shard(&self, key: &K) -> (&Shard<K, V>, u64) {
-        // TODO: Allow custom hashing, maybe don't create a new hasher every time
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        key.hash(&mut hasher);
-        let hash = hasher.finish();
+        let hash = self.inner.hasher.hash_one(key);
         let shard_idx = (hash % Vec::len(&self.inner) as u64) as usize;
         (&self.inner[shard_idx], hash)
     }
@@ -108,11 +119,7 @@ where
         let old = writer.entry(
             hash,
             |(k, _)| k == &key,
-            |(k, _)| {
-                let mut hasher = std::collections::hash_map::DefaultHasher::new();
-                k.hash(&mut hasher);
-                hasher.finish()
-            },
+            |(k, _)| self.inner.hasher.hash_one(k),
         );
         match old {
             hashbrown::hash_table::Entry::Occupied(o) => {
