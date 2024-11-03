@@ -8,6 +8,9 @@
 An asynchronous, sharded `HashMap` for high-performance concurrent data access
 in Rust.
 
+> [!NOTE]
+> This crate is in development, and breaking changes may be made up until a 1.0 release.
+
 ## 📖 Table of Contents
 
 - [Features](#-features)
