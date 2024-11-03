@@ -12,12 +12,6 @@ on:
 
   pull_request:
     branches: [ "main" ]
-    paths:
-      - src/
-      - tests/
-      - Cargo.toml
-      - Cargo.lock
-      - .github/
 
 env:
   CARGO_TERM_COLOR: always
