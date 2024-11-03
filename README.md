@@ -96,9 +96,53 @@ async fn main() {
 }
 ```
 
-## 📊 Benchmark
+## 📊 Benchmarks
 
-> TODO: Add benchmark figures
+Benchmarks were run in a asyncified version of [this benchmark](https://github.com/xacrimon/conc-map-bench). You can
+find it [here](https://github.com/willothy/conc-map-bench). Since the benchmarks use [`jonhoo/bustle`](https://github.com/jonhoo/bustle),
+an asyncified fork of that library ([here](https://github.com/willothy/bustle)) is required.
+
+Machine: Apple M3 Max (2023 16-inch MacBook Pro, 36GB RAM)
+
+OS: macOS 15.0
+
+See the `results/` directory.
+
+### Read Heavy (std hasher)
+
+| | |
+:-------------------------:|:-------------------------:
+![](results/ReadHeavy.std.throughput.svg) | ![](results/ReadHeavy.std.latency.svg)
+
+### Exchange (std hasher)
+
+| | |
+:-------------------------:|:-------------------------:
+![](results/Exchange.std.throughput.svg) | ![](results/Exchange.std.latency.svg)
+
+### Rapid Grow (std hasher)
+
+| | |
+:-------------------------:|:-------------------------:
+![](results/RapidGrow.std.throughput.svg) | ![](results/RapidGrow.std.latency.svg)
+
+### Read Heavy (ahash)
+
+| | |
+:-------------------------:|:-------------------------:
+![](results/ReadHeavy.ahash.throughput.svg) | ![](results/ReadHeavy.ahash.latency.svg)
+
+### Exchange (ahash)
+
+| | |
+:-------------------------:|:-------------------------:
+![](results/Exchange.ahash.throughput.svg) | ![](results/Exchange.ahash.latency.svg)
+
+### Rapid Grow (ahash)
+
+| | |
+:-------------------------:|:-------------------------:
+![](results/RapidGrow.ahash.throughput.svg) | ![](results/RapidGrow.ahash.latency.svg)
 
 ## 🤝 Contributing
 
