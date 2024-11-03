@@ -246,7 +246,7 @@ where
     ///     map.insert("foo", "bar").await;
     ///
     ///     // `get` returns a `MapRef` which holds a read lock on the shard.
-    ///     let entry: whirlwind::MapRef<'_, _, _> = map.get(&"foo").await.unwrap();
+    ///     let entry: MapRef<'_, _, _> = map.get(&"foo").await.unwrap();
     ///
     ///     assert_eq!(entry.value(), &"bar");
     /// });
@@ -280,7 +280,7 @@ where
     ///     map.insert("foo", "bar").await;
     ///
     ///     // `get_mut` returns a `MapRefMut` which holds a write lock on the shard.
-    ///     let mut entry: whirlwind::MapRefMut<'_, _, _> = map.get_mut(&"foo").await.unwrap();
+    ///     let mut entry: MapRefMut<'_, _, _> = map.get_mut(&"foo").await.unwrap();
     ///     *entry.value_mut() = "baz";
     ///
     ///     assert_eq!(entry.value(), &"baz");
