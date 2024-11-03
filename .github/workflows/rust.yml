@@ -10,9 +10,10 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  tests:
+    name: "Run tests"
 
-    runs-on: ubuntu-latest
+    runs-on: depot-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -20,3 +21,16 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+
+  miri:
+    name: "Miri"
+    runs-on: depot-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
+      - name: Test with Miri
+        run: cargo miri test
