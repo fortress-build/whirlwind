@@ -30,6 +30,14 @@ where
     pub async fn read<'a>(&'a self) -> ShardReader<'a, K, V> {
         Read::new(self).await
     }
+
+    pub fn write_sync(&self) -> ShardWriter<K, V> {
+        self.data.write().unwrap()
+    }
+
+    pub fn read_sync(&self) -> ShardReader<K, V> {
+        self.data.read().unwrap()
+    }
 }
 
 impl<K, V> std::ops::Deref for Shard<K, V> {

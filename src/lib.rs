@@ -53,6 +53,7 @@
 //!
 //! See the documentation for each data structure for more information.
 
+pub mod iter;
 pub mod mapref;
 mod shard;
 mod shard_map;

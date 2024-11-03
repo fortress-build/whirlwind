@@ -185,12 +185,26 @@ where
     }
 
     #[inline]
-    fn shard(&self, key: &K) -> (&CachePadded<Shard<K, V>>, u64) {
+    pub(crate) fn shard(&self, key: &K) -> (&CachePadded<Shard<K, V>>, u64) {
         let hash = self.hash_u64(key);
 
         let shard_idx = self.shard_for_hash(hash as usize);
 
         (unsafe { self.inner.shards.get_unchecked(shard_idx) }, hash)
+    }
+
+    #[inline]
+    pub(crate) fn shard_by_idx(&self, idx: usize) -> &CachePadded<Shard<K, V>> {
+        unsafe { self.inner.shards.get_unchecked(idx) }
+    }
+
+    #[inline]
+    pub(crate) fn num_shards(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn iter(&self) -> crate::iter::Iter<K, V, S> {
+        crate::iter::Iter::new(self.clone())
     }
 
     /// Inserts a key-value pair into the map. If the key already exists, the value is updated and
