@@ -85,26 +85,32 @@ where
         }
     }
 
+    /// Inserts a value into the set.
     pub async fn insert(&self, value: T) {
         self.inner.insert(value, ()).await;
     }
 
+    /// Returns `true` if the set contains the specified value.
     pub async fn contains(&self, value: &T) -> bool {
         self.inner.contains_key(value).await
     }
 
+    /// Removes a value from the set.
     pub async fn remove(&self, value: &T) -> bool {
         self.inner.remove(value).await.is_some()
     }
 
-    pub fn len(&self) -> usize {
-        self.inner.len()
+    /// Returns the number of elements in the set.
+    pub async fn len(&self) -> usize {
+        self.inner.len().await
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.inner.len() == 0
+    /// Returns `true` if the set is empty.
+    pub async fn is_empty(&self) -> bool {
+        self.inner.len().await == 0
     }
 
+    /// Clears the set, removing all values.
     pub async fn clear(&self) {
         self.inner.clear().await;
     }

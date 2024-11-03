@@ -12,19 +12,26 @@
 //! let map = Arc::new(ShardMap::new());
 //! rt.block_on(async {
 //!     map.insert("foo", "bar").await;
+//!
 //!     let r = map.get(&"foo").await.unwrap();
+//!
 //!     assert_eq!(r.key(), &"foo");
 //!     assert_eq!(r.value(), &"bar");
+//!
 //!     drop(r); // release the lock so we can mutate the value.
+//!
 //!     let mut mr = map.get_mut(&"foo").await.unwrap();
 //!     *mr.value_mut() = "baz";
+//!
 //!     assert_eq!(mr.value(), &"baz");
 //! });
 
 use crate::shard::{ShardReader, ShardWriter};
 
-/// A reference to a key-value pair in a [`crate::ShardMap`]. Holds a shared (read-only) lock on the shard
-/// associated with the key.
+/// A reference to a key-value pair in a [`crate::ShardMap`].
+///
+/// Holds a shared (read-only) lock on the shard associated with the key. Dropping this
+/// reference will release the lock.
 pub struct MapRef<'a, K, V> {
     key: &'a K,
     value: &'a V,
@@ -51,21 +58,26 @@ where
         Self { reader, key, value }
     }
 
+    /// Returns a reference to the key.
     pub fn key(&self) -> &K {
         self.key
     }
 
+    /// Returns a reference to the value.
     pub fn value(&self) -> &V {
         self.value
     }
 
+    /// Returns a reference to the key-value pair
     pub fn pair(&self) -> (&K, &V) {
         (self.key, self.value)
     }
 }
 
-/// A mutable reference to a key-value pair in a [`crate::ShardMap`]. Holds an exclusive lock on
-/// the shard associated with the key.
+/// A mutable reference to a key-value pair in a [`crate::ShardMap`].
+///
+/// Holds an exclusive lock on the shard associated with the key. Dropping this
+/// reference will release the lock.
 pub struct MapRefMut<'a, K, V> {
     key: &'a K,
     value: &'a mut V,
