@@ -14,8 +14,6 @@ categories = ["asynchronous", "concurrency", "data-structures"]
 [dependencies]
 crossbeam-utils = "0.8.20"
 hashbrown = { version = "0.14.5", default-features = false, features = ["raw"] }
-lock_api = "0.4.12"
-parking_lot_core = "0.9.10"
 
 [dev-dependencies]
 tokio = { version = "1.41.0", features = ["full"] }
