@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GH_DEPLOY_TOKEN }}
+          release-type: rust
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: cargo login ${{ secrets.CARGO_PUBLISH_TOKEN }}
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: cargo publish --dry-run
+        if: ${{ steps.release.outputs.release_created }}
