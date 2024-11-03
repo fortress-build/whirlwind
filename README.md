@@ -17,7 +17,7 @@ in Rust.
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [Examples](#-examples)
-- [Benchmark](#-benchmark)
+- [Benchmark](#-benchmarks)
 - [Contributing](#-contributing)
 - [License](#license)
 
