@@ -13,7 +13,7 @@ jobs:
   tests:
     name: "Run tests"
 
-    runs-on: depot-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
 
   miri:
     name: "Miri"
-    runs-on: depot-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Miri
