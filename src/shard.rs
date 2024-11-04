@@ -4,7 +4,7 @@ mod futures;
 
 use futures::{Read, Write};
 
-pub(crate) type Inner<K, V> = hashbrown::raw::RawTable<(K, V)>;
+pub(crate) type Inner<K, V> = hashbrown::HashTable<(K, V)>;
 pub(crate) type ShardReader<'a, K, V> = RwLockReadGuard<'a, Inner<K, V>>;
 pub(crate) type ShardWriter<'a, K, V> = RwLockWriteGuard<'a, Inner<K, V>>;
 
