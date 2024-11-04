@@ -19,11 +19,12 @@
 //! });
 //! ```
 use std::{
-    hash::{BuildHasher, Hasher, RandomState},
+    hash::{BuildHasher, RandomState},
     sync::{Arc, OnceLock},
 };
 
 use crossbeam_utils::CachePadded;
+use hashbrown::hash_table::Entry;
 
 use crate::{
     mapref::{MapRef, MapRefMut},
@@ -31,9 +32,9 @@ use crate::{
 };
 
 struct Inner<K, V, S = RandomState> {
-    shift: usize,
     shards: Box<[CachePadded<Shard<K, V>>]>,
     hasher: S,
+    shift: usize,
 }
 
 impl<K, V, S> std::ops::Deref for Inner<K, V, S> {
@@ -170,14 +171,6 @@ where
         }
     }
 
-    fn hash_u64(&self, k: &K) -> u64 {
-        let mut hasher = self.inner.hasher.build_hasher();
-
-        k.hash(&mut hasher);
-
-        hasher.finish()
-    }
-
     #[inline]
     fn shard_for_hash(&self, hash: usize) -> usize {
         // 7 high bits for the HashBrown simd tag
@@ -186,7 +179,7 @@ where
 
     #[inline]
     fn shard(&self, key: &K) -> (&CachePadded<Shard<K, V>>, u64) {
-        let hash = self.hash_u64(key);
+        let hash = self.inner.hasher.hash_one(key);
 
         let shard_idx = self.shard_for_hash(hash as usize);
 
@@ -213,19 +206,19 @@ where
         let (shard, hash) = self.shard(&key);
         let mut writer = shard.write().await;
 
-        let (old, slot) = match writer.find_or_find_insert_slot(
+        let (old, slot) = match writer.entry(
             hash,
             |(k, _)| k == &key,
-            |(k, _)| self.hash_u64(k),
+            |(k, _)| self.inner.hasher.hash_one(k),
         ) {
-            Ok(bucket) => {
-                let ((_, old), slot) = unsafe { writer.remove(bucket) };
+            Entry::Occupied(entry) => {
+                let ((_, old), slot) = entry.remove();
                 (Some(old), slot)
             }
-            Err(slot) => (None, slot),
+            Entry::Vacant(slot) => (None, slot),
         };
 
-        unsafe { writer.insert_in_slot(hash, slot, (key, value)) };
+        slot.insert((key, value));
 
         old
     }
@@ -255,7 +248,7 @@ where
         let (shard, hash) = self.shard(key);
         let reader = shard.read().await;
 
-        if let Some((k, v)) = reader.get(hash, |(k, _)| k == key) {
+        if let Some((k, v)) = reader.find(hash, |(k, _)| k == key) {
             let (k, v) = (k as *const K, v as *const V);
             // SAFETY: The key and value are guaranteed to be valid for the lifetime of the reader.
             unsafe { Some(MapRef::new(reader, &*k, &*v)) }
@@ -293,7 +286,7 @@ where
         let (shard, hash) = self.shard(key);
         let mut writer = shard.write().await;
 
-        if let Some((k, v)) = writer.get_mut(hash, |(k, _)| k == key) {
+        if let Some((k, v)) = writer.find_mut(hash, |(k, _)| k == key) {
             let (k, v) = (k as *const K, v as *mut V);
             // SAFETY: The key and value are guaranteed to be valid for the lifetime of the writer.
             unsafe { Some(MapRefMut::new(writer, &*k, &mut *v)) }
@@ -356,8 +349,11 @@ where
     pub async fn remove(&self, key: &K) -> Option<V> {
         let (shard, hash) = self.shard(key);
 
-        match shard.write().await.remove_entry(hash, |(k, _)| k == key) {
-            Some((_, v)) => Some(v),
+        match shard.write().await.find_entry(hash, |(k, _)| k == key) {
+            Ok(occupied) => {
+                let ((_, v), _) = occupied.remove();
+                Some(v)
+            }
             _ => None,
         }
     }
