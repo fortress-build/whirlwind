@@ -35,7 +35,7 @@ Add `whirlwind` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-whirlwind = "0.1.0"
+whirlwind = "0.1.1"
 ```
 
 ## 🔧 Usage
