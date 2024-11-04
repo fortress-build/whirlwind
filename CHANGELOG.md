@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/fortress-build/whirlwind/compare/v0.1.0...v0.1.1) (2024-11-04)
+
+
+### Miscellaneous Chores
+
+* update minor version ([f36a463](https://github.com/fortress-build/whirlwind/commit/f36a463c0b6b7886282fbe68d45e76edace1beae))
+
 ## [0.1.0](https://github.com/fortress-build/whirlwind/compare/v0.1.0-rc1...v0.1.0) (2024-11-03)
 
 
