@@ -13,7 +13,7 @@ categories = ["asynchronous", "concurrency", "data-structures"]
 
 [dependencies]
 crossbeam-utils = "0.8.20"
-hashbrown = { version = "0.15.0" }
+hashbrown = { version = "0.15.1" }
 
 [dev-dependencies]
 tokio = { version = "1.41.0", features = ["full"] }
