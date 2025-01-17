@@ -1,8 +1,4 @@
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-
-mod futures;
-
-use futures::{Read, Write};
+use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub(crate) type Inner<K, V> = hashbrown::HashTable<(K, V)>;
 pub(crate) type ShardReader<'a, K, V> = RwLockReadGuard<'a, Inner<K, V>>;
@@ -24,11 +20,11 @@ where
     }
 
     pub async fn write<'a>(&'a self) -> ShardWriter<'a, K, V> {
-        Write::new(self).await
+        self.data.write().await
     }
 
     pub async fn read<'a>(&'a self) -> ShardReader<'a, K, V> {
-        Read::new(self).await
+        self.data.read().await
     }
 }
 
