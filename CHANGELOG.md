@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/fortress-build/whirlwind/compare/v0.1.1...v0.2.0) (2025-01-17)
+
+
+### Features
+
+* implement `Default` for `ShardMap` and `ShardSet` ([52bf3c8](https://github.com/fortress-build/whirlwind/commit/52bf3c859f2242a53828b0b9e225e5299167db58)), closes [#9](https://github.com/fortress-build/whirlwind/issues/9)
+
 ## [0.1.1](https://github.com/fortress-build/whirlwind/compare/v0.1.0...v0.1.1) (2024-11-04)
 
 
