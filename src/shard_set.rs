@@ -54,6 +54,12 @@ pub struct ShardSet<T, S = RandomState> {
     inner: ShardMap<T, (), S>,
 }
 
+impl<T: Eq + Hash + 'static> Default for ShardSet<T, RandomState> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Eq + Hash + 'static> ShardSet<T, RandomState> {
     pub fn new() -> Self {
         Self {

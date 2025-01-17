@@ -83,6 +83,16 @@ impl<K, V, H> Clone for ShardMap<K, V, H> {
     }
 }
 
+impl<K, V> Default for ShardMap<K, V, RandomState>
+where
+    K: Eq + std::hash::Hash + 'static,
+    V: 'static,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[inline(always)]
 fn calculate_shard_count() -> usize {
     (std::thread::available_parallelism().map_or(1, usize::from) * 4).next_power_of_two()
