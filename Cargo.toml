@@ -2,7 +2,7 @@
 name = "whirlwind"
 description = "Collection of thread-safe, asynchronous data structures."
 authors = ["Will Hopkins <will@fortress.build>"]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/fortress-build/whirlwind"
